@@ -26,7 +26,7 @@ def stream_api_call(query: str):
     Makes a POST request to the backend API with the user query
     and yields the response line by line (streaming).
     """
-    api_url = "http://localhost:4500/ai/getReport"  # Your backend API URL
+    api_url = "https://api.fundrev.ai/ai/getReport"  # Your backend API URL
     try:
         response = requests.post(api_url, json={"prompt": query}, stream=True)
         if response.status_code == 200:
