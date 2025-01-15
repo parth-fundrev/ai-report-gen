@@ -1,5 +1,5 @@
 import streamlit as st
-import requests  # For making API calls
+import requests
 
 # Streamlit title
 st.title("AI Insights")
@@ -15,8 +15,6 @@ if "triggered" not in st.session_state:
     st.session_state["triggered"] = False
 
 # When Enter key is pressed, set the trigger
-# (Streamlit re-runs on every action, so if there's input
-#  but the button wasn't clicked, we consider it an "Enter" press.)
 if user_input and not generate_button:
     st.session_state["triggered"] = True
 
@@ -28,19 +26,15 @@ def stream_api_call(query: str):
     """
     api_url = "https://api.fundrev.ai/ai/getReport"  # Your backend API URL
     try:
-        response = requests.post(api_url, json={"prompt": query}, stream=True)
-        if response.status_code == 200:
-            partial_markdown = ""
-            # Iterate over streamed lines
-            for line in response.iter_lines(decode_unicode=True):
-                if line:
-                    # Append the new line to partial_markdown
-                    partial_markdown += line + "\n"
-                    # Yield the entire assembled Markdown so far
-                    yield partial_markdown
-        else:
-            st.error(f"API call failed with status code: {response.status_code}")
-            st.write("Response Text:", response.text)
+        with requests.post(api_url, json={"prompt": query}, stream=True) as response:
+            # Check if the response status is successful
+            if response.status_code == 200:
+                for line in response.iter_lines(decode_unicode=True):
+                    if line:
+                        yield line  # Yield each line of the response as it arrives
+            else:
+                st.error(f"API call failed with status code: {response.status_code}")
+                st.write("Response Text:", response.text)
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
@@ -52,9 +46,12 @@ if (st.session_state["triggered"] or generate_button) and user_input.strip():
 
     with st.spinner("Generating insights..."):
         # Stream the response line by line
-        for chunk in stream_api_call(user_input.strip()):
+        partial_markdown = ""
+        for line in stream_api_call(user_input.strip()):
+            # Append the new line to the accumulated Markdown
+            partial_markdown += line + "\n"
             # Update the placeholder each time a new line arrives
-            placeholders.markdown(chunk)
+            placeholders.markdown(partial_markdown)
 
     # Reset the trigger so we don't repeatedly call the API
     st.session_state["triggered"] = False
